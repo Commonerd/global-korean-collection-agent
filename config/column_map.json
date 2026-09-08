@@ -1,0 +1,23 @@
+{
+  "id": ["id", "ID", "entity_id"],
+  "name": ["name", "Name", "상호", "기관명", "장소명"],
+  "nameKo": ["nameKo", "name_ko", "한국어명", "한글명"],
+  "nameEn": ["nameEn", "name_en", "영문명"],
+  "entityType": ["entityType", "type", "유형"],
+  "category": ["category", "카테고리"],
+  "country": ["country", "국가"],
+  "city": ["city", "도시"],
+  "address": ["address", "주소"],
+  "latitude": ["latitude", "lat", "위도"],
+  "longitude": ["longitude", "lng", "lon", "경도"],
+  "website": ["website", "url", "웹사이트", "홈페이지"],
+  "phone": ["phone", "전화", "전화번호"],
+  "placeId": ["placeId", "place_id", "Google Place ID"],
+  "koreanRelevance": ["koreanRelevance", "korean_relevance", "한국관련성"],
+  "parentEntityId": ["parentEntityId", "parent_id", "상위ID"],
+  "verificationStatus": ["verificationStatus", "verification_status", "검증상태"],
+  "confidenceScore": ["confidenceScore", "confidence", "신뢰도"],
+  "provenance": ["provenance", "sources", "출처"],
+  "discoveredAt": ["discoveredAt", "수집일"],
+  "updatedAt": ["updatedAt", "수정일"]
+}
