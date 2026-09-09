@@ -1,6 +1,16 @@
 from __future__ import annotations
 import json
+import logging
 from pathlib import Path
+
+log = logging.getLogger(__name__)
+
+DEFAULT_HEADERS = [
+    "id", "name", "nameKo", "nameEn", "entityType", "category", "country",
+    "city", "address", "latitude", "longitude", "website", "phone", "placeId",
+    "koreanRelevance", "parentEntityId", "verificationStatus", "confidenceScore",
+    "provenance", "discoveredAt", "updatedAt",
+]
 
 class SheetWriter:
     def read_rows(self) -> list[dict]: raise NotImplementedError
@@ -39,7 +49,19 @@ class GoogleSheetsWriter(SheetWriter):
         return [dict(zip(headers,row)) for row in values[1:]]
     def _headers(self):
         result=self.service.spreadsheets().values().get(spreadsheetId=self.spreadsheet_id, range=f"{self.sheet_name}!1:1").execute()
-        return result.get("values", [[]])[0]
+        headers=result.get("values", [[]])
+        if headers and headers[0]:
+            return headers[0]
+
+        # Initialize only an entirely empty tab; existing rows are never replaced.
+        self.service.spreadsheets().values().update(
+            spreadsheetId=self.spreadsheet_id,
+            range=f"{self.sheet_name}!1:1",
+            valueInputOption="RAW",
+            body={"values": [DEFAULT_HEADERS]},
+        ).execute()
+        log.info("Initialized empty sheet tab %s with %d headers", self.sheet_name, len(DEFAULT_HEADERS))
+        return DEFAULT_HEADERS
     def append_entity(self, entity):
         headers=self._headers(); payload=entity.model_dump(mode="json")
         alias_map={
@@ -77,7 +99,9 @@ class GoogleSheetsWriter(SheetWriter):
             v=payload.get(field,"")
             row.append(json.dumps(v,ensure_ascii=False) if isinstance(v,(list,dict)) else v)
         body={"values":[row]}
-        return self.service.spreadsheets().values().append(spreadsheetId=self.spreadsheet_id, range=f"{self.sheet_name}!A:Z", valueInputOption="RAW", insertDataOption="INSERT_ROWS", body=body).execute()
+        result=self.service.spreadsheets().values().append(spreadsheetId=self.spreadsheet_id, range=f"{self.sheet_name}!A:Z", valueInputOption="RAW", insertDataOption="INSERT_ROWS", body=body).execute()
+        log.info("Appended entity %s to sheet tab %s", entity.id, self.sheet_name)
+        return result
     def update_entity(self, entity):
         # Safe default: do not overwrite unknown rows automatically.
         raise NotImplementedError("update_entity intentionally disabled; implement row-keyed update after schema confirmation")

@@ -5,7 +5,9 @@ from agent.models.entity import Provenance
 
 def verify_candidate(candidate, fetched_pages: list[dict]) -> dict:
     sources = []
-    official = False
+    # A Google Places result is an authoritative directory record even when the
+    # business website is unavailable or is not on a recognized corporate domain.
+    official = bool(candidate.extractedData.get("placeId"))
     independent = 0
     location_confirmed = bool(candidate.extractedData.get("address"))
     relevance_clear = bool(candidate.extractedData.get("koreanRelevance"))

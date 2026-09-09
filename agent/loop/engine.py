@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json, logging, hashlib
+from typing import Optional
 from urllib.parse import urlparse
 from datetime import datetime, timezone
 from agent.agents.discovery import candidate_from_result
@@ -29,15 +30,15 @@ class AutonomousLoop:
             for s in seeds:
                 self.state.save_seed(s)
                 q.push(s)
-            self._iteration(q,budget,existing)
+            self._iteration(q,budget,existing,goal_query=goal)
             existing=self.sheet.read_rows()
         return {"counts": self.state.counts()}
 
-    def _iteration(self,q,budget,existing):
+    def _iteration(self,q,budget,existing,goal_query=None):
         while len(q) and budget.can_add_entity():
             seed=q.pop()
             if seed.depth>self.settings.max_depth: continue
-            if not self.state.mark_query(seed.query): continue
+            if seed.query != goal_query and not self.state.mark_query(seed.query): continue
             log.info("SEARCH %s", seed.query)
             results=[]
             if self.settings.mode=="mock":
@@ -80,7 +81,11 @@ class AutonomousLoop:
                 self.graph.add_entity(entity)
                 self.state.save_entity(entity)
                 if hr.status=="CONFIRMED" and dup=="NEW":
-                    if not self.settings.dry_run: self.sheet.append_entity(entity)
+                    if self.settings.dry_run:
+                        log.info("WRITE skipped for %s: DRY_RUN=true", entity.id)
+                    else:
+                        log.info("WRITE %s: status=%s duplicate=%s score=%s", entity.id, hr.status, dup, hr.score)
+                        self.sheet.append_entity(entity)
                     budget.record_entity()
                     # Relation/Entity seed from the newly approved entity.
                     if seed.depth+1 <= self.settings.max_depth:

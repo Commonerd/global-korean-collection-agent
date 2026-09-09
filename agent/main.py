@@ -3,7 +3,7 @@ import argparse, logging
 from agent.config import Settings
 from agent.state.store import StateStore
 from agent.adapters.sheets import MockSheetWriter, GoogleSheetsWriter
-from agent.adapters.search import MockSearchAdapter, GoogleCSEAdapter
+from agent.adapters.search import EmptySearchAdapter, MockSearchAdapter, GoogleCSEAdapter
 from agent.adapters.places import MockPlacesAdapter, GooglePlacesAdapter
 from agent.adapters.web import WebPageAdapter
 from agent.adapters.llm import NullLLM, OpenAICompatibleLLM, OllamaLLM
@@ -17,7 +17,7 @@ def build(settings):
         sheet=MockSheetWriter(); search=MockSearchAdapter(); places=MockPlacesAdapter()
     else:
         sheet=GoogleSheetsWriter(settings.google_spreadsheet_id,settings.google_sheet_name,settings.google_service_account_json)
-        search=GoogleCSEAdapter(settings.google_cse_api_key,settings.google_cse_cx,settings.request_timeout_seconds) if settings.google_cse_api_key and settings.google_cse_cx else MockSearchAdapter()
+        search=GoogleCSEAdapter(settings.google_cse_api_key,settings.google_cse_cx,settings.request_timeout_seconds) if settings.google_cse_api_key and settings.google_cse_cx else EmptySearchAdapter()
         places=GooglePlacesAdapter(settings.google_places_api_key,settings.request_timeout_seconds) if settings.enable_places and settings.google_places_api_key else MockPlacesAdapter()
     web=WebPageAdapter(settings.request_timeout_seconds)
     graph=GraphStore(state)

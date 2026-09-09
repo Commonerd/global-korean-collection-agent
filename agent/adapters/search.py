@@ -23,3 +23,8 @@ class MockSearchAdapter(SearchAdapter):
     def search(self, query: str, context=None) -> list[dict]:
         q=query.lower()
         return [x for x in self.DATA if any(token in (x["name"]+" "+x.get("koreanRelevance","")).lower() for token in q.split() if len(token)>2)] or self.DATA[:2]
+
+
+class EmptySearchAdapter(SearchAdapter):
+    def search(self, query: str, context=None) -> list[dict]:
+        return []
