@@ -101,3 +101,9 @@ Implemented the production Google Places -> Web -> Relation -> Sheets flow.
 - 화면 출력과 파일 로그를 동시에 유지
 - `LOG_DIR`, `LOG_FILE` 환경변수로 경로 변경 가능
 - launchd stdout/stderr도 `data/logs/`에 저장
+
+# Web expansion verification gate
+
+- 공식 웹 JSON-LD 관계를 Harness의 `relation_confirmed` 입력에 연결
+- 관계·공식 출처·주소·한국 관련성이 모두 확인된 웹 확장 Entity만 `CONFIRMED`
+- 주소가 없는 웹 회사/브랜드 후보는 계속 `NEEDS_REVIEW`로 보호

@@ -31,6 +31,11 @@ def test_entity_records_discovery_origin():
     assert e.discoveryMethod=="PLACES"
     assert e.sourceSeed=="Tokyo Korean restaurant"
 
+def test_official_relation_can_confirm_web_entity_with_location():
+    r=evaluate(entity(), relation_confirmed=True, official_confirmed=True, location_confirmed=True, relevance_clear=True)
+    assert r.status=="CONFIRMED"
+    assert r.score==80
+
 def test_official_json_ld_brand_becomes_related_candidate():
     parent={"name":"Seoul Garden Tokyo"}
     page={"url":"https://restaurant.example/", "json_ld":[{"@type":"Restaurant","name":"Seoul Garden Tokyo","brand":{"@type":"Brand","name":"Seoul Garden","url":"https://brand.example/"}}]}

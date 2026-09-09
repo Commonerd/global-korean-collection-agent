@@ -112,7 +112,7 @@ class AutonomousLoop:
                 entity_id=hashlib.sha1(f"{data.get('name')}|{data.get('address')}|{data.get('website')}".encode()).hexdigest()[:16]
                 entity=Entity(id=entity_id,name=data.get("name") or cand.rawName or "Unknown",entityType=self._entity_type(data),category=self._category(data),country=data.get("country") or self._guess_country(data.get("address")),city=data.get("city") or self._guess_city(data.get("address")),address=data.get("address"),latitude=data.get("latitude"),longitude=data.get("longitude"),website=data.get("website"),phone=data.get("phone"),placeId=data.get("placeId"),koreanRelevance=data.get("koreanRelevance"),discoveryMethod="OFFICIAL_WEB" if data.get("_relation_source_id") else ("PLACES" if data.get("placeId") else "SEARCH"),sourceEntityId=data.get("_relation_source_id"),relationType=data.get("_relation_type"),sourceSeed=seed.query,provenance=ver["provenance"] or [{"sourceName":"query","sourceType":"search","verificationMethod":"query","evidence":seed.query}],verificationStatus="UNVERIFIED")
                 dup,_=resolve(entity,existing)
-                hr=evaluate(entity,dup,**{k:ver[k] for k in ["independent_sources","official_confirmed","location_confirmed","relevance_clear"]})
+                hr=evaluate(entity,dup,relation_confirmed=bool(data.get("_relation_type")),**{k:ver[k] for k in ["independent_sources","official_confirmed","location_confirmed","relevance_clear"]})
                 entity.confidenceScore=hr.score; entity.verificationStatus=hr.status; entity.updatedAt=datetime.now(timezone.utc).isoformat()
                 self.graph.add_entity(entity)
                 self.state.save_entity(entity)
