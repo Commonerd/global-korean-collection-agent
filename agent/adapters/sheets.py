@@ -9,7 +9,8 @@ DEFAULT_HEADERS = [
     "id", "name", "nameKo", "nameEn", "entityType", "category", "country",
     "city", "address", "latitude", "longitude", "website", "phone", "placeId",
     "koreanRelevance", "parentEntityId", "verificationStatus", "confidenceScore",
-    "provenance", "discoveredAt", "updatedAt",
+    "provenance", "discoveryMethod", "sourceEntityId", "relationType", "sourceSeed",
+    "discoveredAt", "updatedAt",
 ]
 
 class SheetWriter:
@@ -51,7 +52,19 @@ class GoogleSheetsWriter(SheetWriter):
         result=self.service.spreadsheets().values().get(spreadsheetId=self.spreadsheet_id, range=f"{self.sheet_name}!1:1").execute()
         headers=result.get("values", [[]])
         if headers and headers[0]:
-            return headers[0]
+            existing=headers[0]
+            missing=[header for header in DEFAULT_HEADERS if header not in existing]
+            if missing:
+                updated=existing + missing
+                self.service.spreadsheets().values().update(
+                    spreadsheetId=self.spreadsheet_id,
+                    range=f"{self.sheet_name}!1:1",
+                    valueInputOption="RAW",
+                    body={"values": [updated]},
+                ).execute()
+                log.info("Added %d provenance headers to sheet tab %s", len(missing), self.sheet_name)
+                return updated
+            return existing
 
         # Initialize only an entirely empty tab; existing rows are never replaced.
         self.service.spreadsheets().values().update(
@@ -84,6 +97,10 @@ class GoogleSheetsWriter(SheetWriter):
             "verificationStatus":["verificationStatus","verification_status","검증상태"],
             "confidenceScore":["confidenceScore","confidence","신뢰도"],
             "provenance":["provenance","sources","출처"],
+            "discoveryMethod":["discoveryMethod","discovery_method","발견방법","수집경로"],
+            "sourceEntityId":["sourceEntityId","source_entity_id","원본EntityID"],
+            "relationType":["relationType","relation_type","관계유형"],
+            "sourceSeed":["sourceSeed","source_seed","출처Seed"],
             "discoveredAt":["discoveredAt","수집일"],
             "updatedAt":["updatedAt","수정일"]
         }

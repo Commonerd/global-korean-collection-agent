@@ -21,6 +21,8 @@ class Settings:
     dry_run: bool = _bool("DRY_RUN", True)
     database_path: str = os.getenv("DATABASE_PATH", "data/agent.db")
     review_queue_path: str = os.getenv("REVIEW_QUEUE_PATH", "data/review_queue.jsonl")
+    log_dir: str = os.getenv("LOG_DIR", "data/logs")
+    log_file: str = os.getenv("LOG_FILE", "agent.log")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     max_depth: int = int(os.getenv("MAX_DEPTH", "3"))
     max_requests_per_run: int = int(os.getenv("MAX_REQUESTS_PER_RUN", "30"))
@@ -54,5 +56,11 @@ class Settings:
     @property
     def review_path(self) -> Path:
         path = Path(self.review_queue_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+
+    @property
+    def log_path(self) -> Path:
+        path = Path(self.log_dir) / self.log_file
         path.parent.mkdir(parents=True, exist_ok=True)
         return path

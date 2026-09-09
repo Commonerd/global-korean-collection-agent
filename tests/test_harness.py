@@ -24,6 +24,13 @@ def test_google_places_result_is_authoritatively_verified():
     result=verify_candidate(candidate, [])
     assert result["official_confirmed"] is True
 
+def test_entity_records_discovery_origin():
+    e=entity()
+    e.discoveryMethod="PLACES"
+    e.sourceSeed="Tokyo Korean restaurant"
+    assert e.discoveryMethod=="PLACES"
+    assert e.sourceSeed=="Tokyo Korean restaurant"
+
 def test_official_json_ld_brand_becomes_related_candidate():
     parent={"name":"Seoul Garden Tokyo"}
     page={"url":"https://restaurant.example/", "json_ld":[{"@type":"Restaurant","name":"Seoul Garden Tokyo","brand":{"@type":"Brand","name":"Seoul Garden","url":"https://brand.example/"}}]}

@@ -27,8 +27,8 @@
         <string>180</string>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/REPLACE_ME/Documents/global-korean-collection-agent/data/logs/launchd.out.log</string>
+    <string>/Users/REPLACE_ME/Documents/global-korean-collection-agent/data/logs/agent.stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/REPLACE_ME/Documents/global-korean-collection-agent/data/logs/launchd.err.log</string>
+    <string>/Users/REPLACE_ME/Documents/global-korean-collection-agent/data/logs/agent.stderr.log</string>
 </dict>
 </plist>

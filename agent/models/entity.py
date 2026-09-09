@@ -33,6 +33,10 @@ class Entity(BaseModel):
     placeId: Optional[str] = None
     koreanRelevance: Optional[str] = None
     parentEntityId: Optional[str] = None
+    discoveryMethod: Optional[str] = None
+    sourceEntityId: Optional[str] = None
+    relationType: Optional[str] = None
+    sourceSeed: Optional[str] = None
     verificationStatus: VerificationStatus = "UNVERIFIED"
     confidenceScore: int = Field(default=0, ge=0, le=100)
     provenance: list[Provenance]

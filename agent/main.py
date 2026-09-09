@@ -1,5 +1,7 @@
 from __future__ import annotations
 import argparse, logging
+import sys
+from datetime import datetime, timezone
 from agent.config import Settings
 from agent.state.store import StateStore
 from agent.adapters.sheets import MockSheetWriter, GoogleSheetsWriter
@@ -31,7 +33,19 @@ def main():
     parser.add_argument("--goal",default=None)
     args=parser.parse_args()
     settings=Settings()
-    logging.basicConfig(level=getattr(logging,settings.log_level.upper(),logging.INFO),format="%(asctime)s %(levelname)s %(message)s")
+    log_format="%(asctime)s %(levelname)s %(name)s %(message)s"
+    logging.basicConfig(
+        level=getattr(logging,settings.log_level.upper(),logging.INFO),
+        format=log_format,
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(settings.log_path, mode="a", encoding="utf-8"),
+        ],
+        force=True,
+    )
+    log=logging.getLogger(__name__)
+    run_started=datetime.now(timezone.utc).isoformat()
+    log.info("RUN_START mode=%s goal=%s iterations=%s dry_run=%s", args.mode, args.goal or "", args.iterations, settings.dry_run)
     state, loop=build(settings)
     try:
         if args.mode=="status":
@@ -46,5 +60,7 @@ def main():
             print(loop.run(goal=args.goal,iterations=max(1,args.iterations)))
     finally:
         state.close()
+        log.info("RUN_END mode=%s goal=%s started_at=%s", args.mode, args.goal or "", run_started)
+        logging.shutdown()
 
 if __name__=="__main__": main()

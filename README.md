@@ -288,6 +288,8 @@ next Loop
 - 기존 Sheet 행을 자동 덮어쓰지 않으며 기본 동작은 append
 - production에서는 `CONFIRMED`이면서 `NEW`인 Entity만 append
 - 빈 Sheet 탭은 기존 행이 없을 때만 canonical header를 최초 1회 생성
+- 신규 기록에는 `discoveryMethod`, `sourceEntityId`, `relationType`, `sourceSeed`를 자동 기록
+- 모든 실행 로그를 `data/logs/agent.log`에 append하고 화면에도 출력
 - duplicate가 애매하면 `MERGE_REVIEW`
 
 ## 기존 Sheet 스키마
@@ -299,8 +301,11 @@ id, name, nameKo, nameEn, entityType, category,
 country, city, address, latitude, longitude,
 website, phone, placeId, koreanRelevance,
 parentEntityId, verificationStatus, confidenceScore,
-provenance, discoveredAt, updatedAt
+provenance, discoveryMethod, sourceEntityId, relationType,
+sourceSeed, discoveredAt, updatedAt
 ```
+
+`discoveryMethod`는 `PLACES`, `OFFICIAL_WEB`, `SEARCH` 중 하나이며, 관계 확장 행에는 원본 Entity와 관계 타입, Seed가 함께 기록됩니다. 새 컬럼은 기존 행을 덮어쓰지 않고 헤더에만 추가됩니다.
 
 기존 DB의 컬럼명이 다르면 `config/column_map.json`에서 추가 별칭을 지정할 수 있습니다.
 

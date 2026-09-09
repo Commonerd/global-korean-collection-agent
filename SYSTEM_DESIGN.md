@@ -653,6 +653,7 @@ Write Verification
 - `CONFIRMED` 및 `NEW`인 Entity만 append한다.
 - 기존 행은 삭제하거나 overwrite하지 않는다. 현재 자동 update는 안전을 위해 비활성화되어 있다.
 - 완전히 빈 탭에서만 canonical header를 최초 1회 생성하며, 기존 데이터가 있는 탭의 행은 변경하지 않는다.
+- 신규 Entity에는 `discoveryMethod`, `sourceEntityId`, `relationType`, `sourceSeed`를 기록해 Places 직접 수집과 Web/Graph 확장을 구분한다.
 
 ## 13.3 Adapter
 
@@ -765,6 +766,8 @@ PENDING → RUNNING → DONE
 ## 16.2 장시간 운영 스케줄러
 
 운영용 장시간 실행은 `scripts/run_long_collection.sh`가 bounded loop 프로파일을 적용한다. 수동 1회 실행은 목표 하나를 오래 탐색하고, macOS daily scheduler는 `restaurant`, `market`, `company`, `association` 네 탐색 축을 순서대로 실행한다. daily scheduler는 매일 08:00에 각 축을 3 iterations, 최대 3분으로 실행하며 pending Seed를 이어서 처리한다. API key와 서비스 계정은 plist가 아니라 `.env`에서 로드하고, 최초 등록 전에는 `DRY_RUN=true`로 점검한다.
+
+모든 실행은 `LOG_DIR/LOG_FILE`에 append 방식으로 기록하며 기본값은 `data/logs/agent.log`다. launchd의 표준 출력과 오류도 같은 로그 디렉터리에 별도 파일로 남긴다.
 
 ---
 

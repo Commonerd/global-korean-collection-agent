@@ -87,3 +87,17 @@ Implemented the production Google Places -> Web -> Relation -> Sheets flow.
 - 1회 실행: `make collect-once GOAL="Osaka Korean restaurant"`
 - 매일 08:00 등록: `make schedule-daily`
 - daily 탐색 축: restaurant, market, company, association
+
+# Discovery provenance columns
+
+- Entity와 Google Sheets에 `discoveryMethod`, `sourceEntityId`, `relationType`, `sourceSeed` 추가
+- `PLACES`, `OFFICIAL_WEB`, `SEARCH` 출처를 신규 행에 자동 기록
+- 기존 Sheet 행은 수정하지 않고, 기존 헤더 뒤에 provenance 컬럼만 안전하게 추가
+
+# Persistent execution logs
+
+- 기본 로그 디렉터리 `data/logs/` 및 append 파일 `agent.log` 추가
+- 모든 CLI 실행에 `RUN_START` / `RUN_END` 기록
+- 화면 출력과 파일 로그를 동시에 유지
+- `LOG_DIR`, `LOG_FILE` 환경변수로 경로 변경 가능
+- launchd stdout/stderr도 `data/logs/`에 저장
