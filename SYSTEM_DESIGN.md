@@ -764,7 +764,7 @@ PENDING → RUNNING → DONE
 
 ## 16.2 장시간 운영 스케줄러
 
-운영용 장시간 실행은 `scripts/run_long_collection.sh`가 bounded loop 프로파일을 적용한다. 수동 1회 실행은 목표 하나를 오래 탐색하고, macOS daily scheduler는 `restaurant`, `market`, `company`, `association` 네 탐색 축을 순서대로 실행한다. daily scheduler는 매일 08:00에 각 축을 3 iterations, 최대 10분으로 실행하며 pending Seed를 이어서 처리한다. API key와 서비스 계정은 plist가 아니라 `.env`에서 로드하고, 최초 등록 전에는 `DRY_RUN=true`로 점검한다.
+운영용 장시간 실행은 `scripts/run_long_collection.sh`가 bounded loop 프로파일을 적용한다. 수동 1회 실행은 목표 하나를 오래 탐색하고, macOS daily scheduler는 `restaurant`, `market`, `company`, `association` 네 탐색 축을 순서대로 실행한다. daily scheduler는 매일 08:00에 각 축을 3 iterations, 최대 3분으로 실행하며 pending Seed를 이어서 처리한다. API key와 서비스 계정은 plist가 아니라 `.env`에서 로드하고, 최초 등록 전에는 `DRY_RUN=true`로 점검한다.
 
 ---
 

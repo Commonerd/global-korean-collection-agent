@@ -181,7 +181,7 @@ Korean company overseas
 Korean association overseas
 ```
 
-각 영역은 3 iterations, 최대 10분으로 제한되며 pending Seed를 이어서 처리합니다. 결과 로그는 `data/logs/`에 저장됩니다. 최초 등록 전에는 `.env`의 `DRY_RUN=true`로 점검하세요.
+각 영역은 3 iterations, 최대 3분으로 제한되며 pending Seed를 이어서 처리합니다. 결과 로그는 `data/logs/`에 저장됩니다. 최초 등록 전에는 `.env`의 `DRY_RUN=true`로 점검하세요.
 
 수동 장시간 실행이 필요하면 `make long-loop GOAL="Osaka Korean restaurant"`를 사용합니다.
 
