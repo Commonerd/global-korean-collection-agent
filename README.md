@@ -12,6 +12,7 @@ Google Spreadsheet를 최종 저장소로 사용하는 자율형 글로벌 한�
 - 공식 출처 우선 검증 및 confidence 보조 점수
 - `DRY_RUN=true`를 기본값으로 하여 실제 Sheet 변경을 막음
 - 검색/Places/LLM 공급자를 Adapter로 분리
+- Google Places 결과의 공식 website를 직접 조사하고, 페이지의 명시된 JSON-LD 관계를 Candidate와 Graph로 확장
 - 외부 API가 없어도 Mock adapter로 end-to-end 테스트 가능
 
 ## 빠른 시작
@@ -84,7 +85,7 @@ GOOGLE_PLACES_API_KEY=...
 ENABLE_PLACES=true
 ```
 
-현재 구현은 Places API (New)의 `places:searchText` REST endpoint를 사용합니다. FieldMask를 명시하고, 결과는 Candidate로만 들어갑니다.
+현재 구현은 Places API (New)의 `places:searchText` REST endpoint를 사용합니다. FieldMask를 명시하고, 결과는 Candidate로 변환됩니다. Places 결과에 website가 있으면 `WebPageAdapter`로 직접 열고, 페이지의 JSON-LD에 명시된 `brand`, `parentOrganization`, `manufacturer`, `department`, `subOrganization` 등의 관계만 추가 Candidate로 확장합니다. 원본 페이지 URL은 provenance로 보존됩니다.
 
 ### Google Custom Search JSON API
 
@@ -94,7 +95,23 @@ GOOGLE_CSE_CX=...
 ENABLE_WEB_SEARCH=true
 ```
 
-설정하지 않으면 기본적으로 Mock 검색을 사용하거나, 웹 페이지 직접 조회만 가능합니다.
+production에서 CSE가 설정되지 않으면 `MockSearchAdapter`를 사용하지 않습니다. 검색 기능은 `SEARCH_UNAVAILABLE`로 기록하고, Google Places 결과와 공식 website 직접 조사만 계속합니다. Mock 검색은 `MODE=mock`일 때만 사용합니다.
+
+### Relation Expansion
+
+한 번의 `once` 실행에서도 다음 경로가 동작합니다.
+
+```text
+Google Places
+  -> official website
+  -> explicit JSON-LD related entity
+  -> Candidate / Verification / Duplicate / Harness
+  -> Graph edge
+  -> CONFIRMED + NEW만 Sheet append
+  -> RELATION_SEED / ENTITY_SEED
+```
+
+관계가 명시되지 않은 이름이나 지점은 추측하여 생성하지 않습니다. 기존 Entity와 중복이면 새 Sheet row를 append하지 않습니다.
 
 ### LLM
 
@@ -227,6 +244,8 @@ next Loop
 - 개인 연락처/자택 주소/리뷰 작성자 등 개인정보 필터
 - provenance가 없는 entity는 승인하지 않음
 - 기존 Sheet 행을 자동 덮어쓰지 않으며 기본 동작은 append
+- production에서는 `CONFIRMED`이면서 `NEW`인 Entity만 append
+- 빈 Sheet 탭은 기존 행이 없을 때만 canonical header를 최초 1회 생성
 - duplicate가 애매하면 `MERGE_REVIEW`
 
 ## 기존 Sheet 스키마

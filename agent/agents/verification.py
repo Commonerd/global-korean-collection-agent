@@ -7,7 +7,7 @@ def verify_candidate(candidate, fetched_pages: list[dict]) -> dict:
     sources = []
     # A Google Places result is an authoritative directory record even when the
     # business website is unavailable or is not on a recognized corporate domain.
-    official = bool(candidate.extractedData.get("placeId"))
+    official = bool(candidate.extractedData.get("placeId") or candidate.extractedData.get("_source_type") == "official_web")
     independent = 0
     location_confirmed = bool(candidate.extractedData.get("address"))
     relevance_clear = bool(candidate.extractedData.get("koreanRelevance"))
@@ -17,7 +17,7 @@ def verify_candidate(candidate, fetched_pages: list[dict]) -> dict:
         if not url:
             continue
         host = urlparse(url).netloc.lower()
-        is_official = any(x in host for x in [".kr", "samsung.com", "lg.com", "hyundai.com"])
+        is_official = candidate.extractedData.get("_source_type") == "official_web" or any(x in host for x in [".kr", "samsung.com", "lg.com", "hyundai.com"])
         if is_official:
             official = True
         else:

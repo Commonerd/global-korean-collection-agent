@@ -3,7 +3,7 @@ import json, logging, hashlib
 from typing import Optional
 from urllib.parse import urlparse
 from datetime import datetime, timezone
-from agent.agents.discovery import candidate_from_result
+from agent.agents.discovery import candidate_from_result, extract_related_results, related_results_from_json_ld
 from agent.agents.resolution import resolve
 from agent.agents.verification import verify_candidate
 from agent.harness.evaluator import evaluate
@@ -47,27 +47,47 @@ class AutonomousLoop:
                 if not budget.can_request(seed.depth): break
                 budget.record_request()
                 results=self.search.search(seed.query,{})
+                if not results and not (self.settings.google_cse_api_key and self.settings.google_cse_cx):
+                    log.info("[SEARCH_UNAVAILABLE] CSE is not configured; using Places and official websites")
                 if self.settings.enable_web_search and self.settings.google_cse_api_key:
                     pass
                 if self.settings.enable_places and self.settings.google_places_api_key:
-                    results += self.places.search(seed.query,{})
-            for result in results:
+                    places_results = self.places.search(seed.query,{})
+                    log.info("[PLACES] discovered: %d for %s", len(places_results), seed.query)
+                    results += sorted(places_results, key=lambda item: bool(item.get("website")), reverse=True)
+            result_index = 0
+            while result_index < len(results):
+                result = results[result_index]
+                result_index += 1
                 if not budget.can_add_entity(): break
                 cand=candidate_from_result(result, seed.query)
                 self.state.save_candidate(cand)
-                fetched=[]
+                fetched=[result["_fetched_page"]] if result.get("_fetched_page") else []
                 for url in cand.sourceUrls[:3]:
                     domain=urlparse(url).netloc.lower()
                     if not url or not budget.can_request(seed.depth, domain): continue
-                    if not self.state.mark_url(url): continue
+                    official_site = bool(result.get("placeId") and url == result.get("website"))
+                    if not official_site and not self.state.mark_url(url): continue
                     if self.settings.mode=="mock":
                         fetched.append({"url":url,"title":cand.rawName or "Mock source","text":"Official-looking mock evidence"})
                     else:
                         try:
                             budget.record_request(domain)
+                            if official_site:
+                                log.info("[WEB] opening official site: %s", url)
                             fetched.append(self.web.fetch(url))
                         except Exception as exc:
                             log.warning("fetch failed %s: %s", url, exc)
+                if result.get("placeId") and fetched:
+                    related = []
+                    for page in fetched:
+                        related.extend(extract_related_results(page, result))
+                        related.extend(related_results_from_json_ld(page, result))
+                    for related_result in related:
+                        related_result["_relation_source_id"] = hashlib.sha1(f"{result.get('name')}|{result.get('address')}|{result.get('website')}".encode()).hexdigest()[:16]
+                        related_result["_fetched_page"] = fetched[0]
+                        log.info("[EXTRACT] related entity: %s", related_result.get("name"))
+                    results[result_index:result_index] = related
                 ver=verify_candidate(cand,fetched)
                 if self.settings.mode == "mock":
                     ver["official_confirmed"] = True
@@ -80,12 +100,21 @@ class AutonomousLoop:
                 entity.confidenceScore=hr.score; entity.verificationStatus=hr.status; entity.updatedAt=datetime.now(timezone.utc).isoformat()
                 self.graph.add_entity(entity)
                 self.state.save_entity(entity)
+                relation_source_id=data.get("_relation_source_id")
+                relation_type=data.get("_relation_type")
+                if relation_source_id and relation_type:
+                    self.graph.add_edge(relation_source_id, entity.id, relation_type)
+                    log.info("[RELATION] %s -> %s -> %s", relation_source_id, relation_type, entity.name)
+                log.info("[RESOLUTION] %s", dup)
+                log.info("[VERIFY] %s", hr.status)
                 if hr.status=="CONFIRMED" and dup=="NEW":
                     if self.settings.dry_run:
                         log.info("WRITE skipped for %s: DRY_RUN=true", entity.id)
                     else:
                         log.info("WRITE %s: status=%s duplicate=%s score=%s", entity.id, hr.status, dup, hr.score)
                         self.sheet.append_entity(entity)
+                        log.info("[WRITE] succeeded: %s", entity.name)
+                        existing.append(entity.model_dump(mode="json"))
                     budget.record_entity()
                     # Relation/Entity seed from the newly approved entity.
                     if seed.depth+1 <= self.settings.max_depth:
@@ -93,6 +122,13 @@ class AutonomousLoop:
                         next_seed=Seed(seedId=hashlib.sha1(rel.encode()).hexdigest()[:16],seedType="RELATION_SEED",query=rel,priority=max(seed.priority-10,1),depth=seed.depth+1,context={"entityId":entity.id})
                         self.state.save_seed(next_seed)
                         q.push(next_seed)
+                        log.info("[SEED] new seed created: %s", rel)
+                    if entity.website and seed.depth+1 <= self.settings.max_depth:
+                        site_seed_query=f"{entity.name} official website"
+                        site_seed=Seed(seedId=hashlib.sha1(site_seed_query.encode()).hexdigest()[:16],seedType="ENTITY_SEED",query=site_seed_query,priority=max(seed.priority-5,1),depth=seed.depth+1,context={"entityId":entity.id})
+                        self.state.save_seed(site_seed)
+                        q.push(site_seed)
+                        log.info("[SEED] new seed created: %s", site_seed_query)
                 else:
                     self.state.add_review(entity.id, "HARNESS", {"entity":entity.model_dump(mode="json"),"errors":hr.errors,"duplicate":dup})
                     budget.record_entity()

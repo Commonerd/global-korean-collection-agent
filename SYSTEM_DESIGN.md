@@ -460,6 +460,12 @@ DirectoryAdapter
 
 특정 공급자에 의존하지 않도록 Agent는 Adapter의 구현체를 직접 몰라야 한다.
 
+## 8.1 현재 production discovery 정책
+
+`MODE=production`에서는 CSE가 설정되지 않았다는 이유로 Mock 검색으로 fallback하지 않는다. 이 경우 검색 기능은 `SEARCH_UNAVAILABLE`로 기록하고, 활성화된 Google Places와 Places 결과의 공식 website 직접 조사만 수행한다. Mock adapter는 `MODE=mock`에서만 사용한다.
+
+Places 결과에 website가 있으면 `WebPageAdapter`로 페이지를 연다. 페이지의 JSON-LD에 명시된 관계 필드(`parentOrganization`, `brand`, `manufacturer`, `department`, `subOrganization`)만 관련 Candidate로 확장하며, 추측으로 회사·브랜드·지점을 생성하지 않는다. 확장 Candidate에는 조사한 원본 페이지 URL을 source/provenance로 보존한다.
+
 ---
 
 # 9. Candidate Extraction
@@ -489,6 +495,8 @@ Candidate
 - 관계 정보
 
 LLM은 **추출과 요약**에 사용하되, 사실을 새로 만들어내면 안 된다.
+
+현재 2단계 구현의 결정적 웹 추출 경로는 공식 페이지의 JSON-LD parser다. 추출된 관계는 기존 Graph edge 타입으로 기록하고, 관련 Entity가 `CONFIRMED`이며 `NEW`일 때만 Sheet에 append한다.
 
 ---
 
@@ -642,6 +650,9 @@ Write Verification
 - 변경 시 변경 이유를 기록한다.
 - 가능하면 안정적인 고유 ID를 사용한다.
 - 실제 Sheet의 컬럼명을 먼저 확인한다.
+- `CONFIRMED` 및 `NEW`인 Entity만 append한다.
+- 기존 행은 삭제하거나 overwrite하지 않는다. 현재 자동 update는 안전을 위해 비활성화되어 있다.
+- 완전히 빈 탭에서만 canonical header를 최초 1회 생성하며, 기존 데이터가 있는 탭의 행은 변경하지 않는다.
 
 ## 13.3 Adapter
 
