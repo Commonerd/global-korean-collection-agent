@@ -57,3 +57,33 @@ Implemented the production Google Places -> Web -> Relation -> Sheets flow.
 	- Graph relation creation
 	- safe Google Sheets append for `CONFIRMED + NEW`
 	- new relation/entity seed creation
+
+# Seed priority and bounded re-exploration
+
+3단계 구현:
+
+- 저장된 `ENTITY_SEED`와 `RELATION_SEED`를 다음 iteration의 입력으로 연결
+- `SeedQueue`에서 priority가 높은 Seed를 먼저 실행
+- Seed 상태를 `PENDING → RUNNING → DONE`으로 기록
+- 예산으로 중단된 Seed는 `FAILED`로 기록
+- `MAX_DEPTH`와 query 방문 기록으로 중복·무한 재탐색 방지
+- `once`는 bounded one-shot, `loop --iterations N`은 pending Seed를 재사용
+
+검증:
+
+- `python -m compileall -q agent tests` — PASS
+- `pytest -q` — 7 passed
+
+# Long-run scheduler
+
+- `scripts/run_long_collection.sh`에 장시간 production 실행 프로파일 추가
+- `make long-loop GOAL="..."`로 depth 4, 12 iterations, 30분 bounded 탐색 실행
+- macOS `launchd/com.global-korean-collection-agent.plist.example` 추가
+- launchd는 매일 08:00에 실행하며 로그를 `data/logs/`에 기록
+- API key와 서비스 계정 정보는 plist에 저장하지 않고 `.env`에서 로드
+
+# Simple execution commands
+
+- 1회 실행: `make collect-once GOAL="Osaka Korean restaurant"`
+- 매일 08:00 등록: `make schedule-daily`
+- daily 탐색 축: restaurant, market, company, association

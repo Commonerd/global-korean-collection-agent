@@ -751,6 +751,21 @@ Osaka + Korean corporate offices
 
 발견된 엔티티와 관계가 새로운 Seed가 될 수 있다.
 
+## 16.1 Seed priority와 재탐색 정책
+
+확장으로 생성된 `ENTITY_SEED`와 `RELATION_SEED`는 SQLite에 저장되어 다음 iteration의 입력으로 다시 큐에 들어간다. `SeedQueue`는 priority가 높은 Seed를 먼저 실행한다.
+
+```text
+PENDING → RUNNING → DONE
+                 ↘ FAILED (예산/실행 제한)
+```
+
+재탐색은 `MAX_DEPTH`, request/entity/runtime budget, query 방문 기록으로 제한한다. `--mode once`는 한 번의 bounded run만 수행하고, `--mode loop --iterations N`은 저장된 pending Seed를 다음 iteration에서 재사용한다. 따라서 Seed가 재귀적으로 생성되어도 무한 loop로 실행되지 않는다.
+
+## 16.2 장시간 운영 스케줄러
+
+운영용 장시간 실행은 `scripts/run_long_collection.sh`가 bounded loop 프로파일을 적용한다. 수동 1회 실행은 목표 하나를 오래 탐색하고, macOS daily scheduler는 `restaurant`, `market`, `company`, `association` 네 탐색 축을 순서대로 실행한다. daily scheduler는 매일 08:00에 각 축을 3 iterations, 최대 10분으로 실행하며 pending Seed를 이어서 처리한다. API key와 서비스 계정은 plist가 아니라 `.env`에서 로드하고, 최초 등록 전에는 `DRY_RUN=true`로 점검한다.
+
 ---
 
 # 17. Agent State

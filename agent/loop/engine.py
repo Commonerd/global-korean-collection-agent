@@ -23,14 +23,19 @@ class AutonomousLoop:
         for i in range(iterations):
             budget=LoopBudget(self.settings.max_depth,self.settings.max_requests_per_run,self.settings.max_requests_per_domain,self.settings.max_new_entities_per_run,self.settings.max_runtime_seconds)
             seeds=[]
-            if goal: seeds.append(Seed(seedId=hashlib.sha1(goal.encode()).hexdigest()[:16],seedType="REGION_SEED",query=goal,priority=100,depth=0))
+            if goal and i == 0:
+                seeds.append(Seed(seedId=hashlib.sha1(goal.encode()).hexdigest()[:16],seedType="REGION_SEED",query=goal,priority=100,depth=0))
             from agent.agents.planner import coverage_seeds
             for seed in coverage_seeds(existing)[:10]: seeds.append(seed)
+            seeds.extend(self.state.pending_seeds())
             q=SeedQueue()
+            queued_ids=set()
             for s in seeds:
+                if s.seedId in queued_ids or s.depth > self.settings.max_depth: continue
                 self.state.save_seed(s)
                 q.push(s)
-            self._iteration(q,budget,existing,goal_query=goal)
+                queued_ids.add(s.seedId)
+            self._iteration(q,budget,existing,goal_query=goal if i == 0 else None)
             existing=self.sheet.read_rows()
         return {"counts": self.state.counts()}
 
@@ -38,13 +43,24 @@ class AutonomousLoop:
         while len(q) and budget.can_add_entity():
             seed=q.pop()
             if seed.depth>self.settings.max_depth: continue
-            if seed.query != goal_query and not self.state.mark_query(seed.query): continue
+            if seed.query != goal_query and not self.state.mark_query(seed.query):
+                seed.status="DONE"
+                self.state.save_seed(seed)
+                log.info("[SEED] skipped duplicate query: %s", seed.query)
+                continue
+            seed.status="RUNNING"
+            self.state.save_seed(seed)
+            log.info("[SEED] running: %s priority=%s depth=%s", seed.query, seed.priority, seed.depth)
             log.info("SEARCH %s", seed.query)
             results=[]
             if self.settings.mode=="mock":
                 results=self.search.search(seed.query,{})
             else:
-                if not budget.can_request(seed.depth): break
+                if not budget.can_request(seed.depth):
+                    seed.status="FAILED"
+                    self.state.save_seed(seed)
+                    log.info("[SEED] stopped by budget: %s", seed.query)
+                    break
                 budget.record_request()
                 results=self.search.search(seed.query,{})
                 if not results and not (self.settings.google_cse_api_key and self.settings.google_cse_cx):
@@ -132,6 +148,9 @@ class AutonomousLoop:
                 else:
                     self.state.add_review(entity.id, "HARNESS", {"entity":entity.model_dump(mode="json"),"errors":hr.errors,"duplicate":dup})
                     budget.record_entity()
+            seed.status="DONE"
+            self.state.save_seed(seed)
+            log.info("[SEED] done: %s", seed.query)
 
     @staticmethod
     def _entity_type(data):

@@ -13,6 +13,7 @@ Google Spreadsheet를 최종 저장소로 사용하는 자율형 글로벌 한�
 - `DRY_RUN=true`를 기본값으로 하여 실제 Sheet 변경을 막음
 - 검색/Places/LLM 공급자를 Adapter로 분리
 - Google Places 결과의 공식 website를 직접 조사하고, 페이지의 명시된 JSON-LD 관계를 Candidate와 Graph로 확장
+- 저장된 Seed를 우선순위에 따라 재탐색하고 depth·request·entity·runtime 예산으로 종료
 - 외부 API가 없어도 Mock adapter로 end-to-end 테스트 가능
 
 ## 빠른 시작
@@ -113,6 +114,10 @@ Google Places
 
 관계가 명시되지 않은 이름이나 지점은 추측하여 생성하지 않습니다. 기존 Entity와 중복이면 새 Sheet row를 append하지 않습니다.
 
+### Seed 재탐색
+
+확장으로 생성된 `ENTITY_SEED`와 `RELATION_SEED`를 SQLite에 저장하고, 다음 iteration에서 priority가 높은 순서로 재실행합니다. Seed 상태는 `PENDING → RUNNING → DONE`으로 기록하며, 예산으로 중단되면 `FAILED`로 남깁니다. `MAX_DEPTH`, 요청 수, 신규 Entity 수, 실행 시간 제한과 query 방문 기록으로 무한 반복을 막습니다.
+
 ### LLM
 
 선택 사항입니다. OpenAI 호환 API 또는 Ollama를 지원합니다.
@@ -144,6 +149,43 @@ python -m agent.main --mode once
 ```bash
 python -m agent.main --mode loop --iterations 10
 ```
+
+`loop`는 저장된 pending Seed를 다음 iteration의 입력으로 사용하고, `once`는 한 번의 bounded run만 수행합니다.
+
+### 실행 방법
+
+#### 1회 실행
+
+원하는 목표를 한 번 오래 탐색합니다.
+
+```bash
+make collect-once GOAL="Osaka Korean restaurant"
+```
+
+기존 Sheet에는 `CONFIRMED + NEW`만 append됩니다.
+
+#### 매일 오전 8시 실행
+
+아래 한 줄로 macOS 스케줄러를 등록합니다.
+
+```bash
+make schedule-daily
+```
+
+매일 다음 4개 영역을 각각 탐색합니다.
+
+```text
+Korean restaurant overseas
+Korean market overseas
+Korean company overseas
+Korean association overseas
+```
+
+각 영역은 3 iterations, 최대 10분으로 제한되며 pending Seed를 이어서 처리합니다. 결과 로그는 `data/logs/`에 저장됩니다. 최초 등록 전에는 `.env`의 `DRY_RUN=true`로 점검하세요.
+
+수동 장시간 실행이 필요하면 `make long-loop GOAL="Osaka Korean restaurant"`를 사용합니다.
+
+API key와 서비스 계정 정보는 plist에 넣지 않고 `.env`에서 관리합니다.
 
 특정 목표:
 
